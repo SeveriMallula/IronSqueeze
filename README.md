@@ -6,10 +6,17 @@ component-by-component emulation. See docs/MODEL_AND_SOURCES.md for every estima
 
 ## Deliverable status
 
-This package contains source code, the bundled JUCE framework, tests, and
-Windows/macOS installer build scripts. **It does not contain a Windows .exe
-installer, a macOS .pkg installer, or a compiled Windows/macOS plugin.**
-The native build and validation status is recorded in docs/TEST_REPORT.md.
+Native Windows and macOS installers were built successfully from commit
+`f8ec4efc0f756be96a1a7ccac02f5eb24a04e8c1`. Download the platform artifacts from:
+https://github.com/SeveriMallula/IronSqueeze/actions/runs/41026240511
+
+Windows includes VST3 and standalone. The macOS package includes VST3, AU and
+standalone for Intel and Apple Silicon, targeting macOS 11+. The macOS installer
+was installed on the runner and Apple AU validation passed. Both native DSP and
+processor test suites passed. See docs/TEST_REPORT.md for limits.
+
+Installers are unsigned, and the macOS package is not notarized.
+JUCE 8.0.12 is fetched at its pinned commit during configuration.
 
 The production plugin format is VST3 (.vst3). Legacy VST2 (.vst) is not included.
 The macOS target also includes Audio Unit (.component), for Logic Pro.
@@ -56,7 +63,7 @@ It builds VST3 and standalone, runs both test executables, then creates:
 The installer puts the VST3 in Common Files/VST3 and the standalone in
 Program Files/Mallula Audio/Iron Squeeze. Its stable application identity
 supports upgrades over installers produced by this packaging configuration.
-Close audio hosts before updating. This packaging has not been run on Windows.
+Close audio hosts before updating. Windows compilation, tests and installer creation passed on the native runner.
 JUCE 8.0.12 explicitly rejects MinGW; use the supported MSVC toolchain.
 
 ## Build the macOS installer
@@ -75,12 +82,11 @@ Installation paths: /Library/Audio/Plug-Ins/VST3,
 APP_SIGN_IDENTITY and INSTALLER_SIGN_IDENTITY select signing certificates.
 NOTARY_PROFILE selects an existing notarytool keychain profile. Without these,
 the plugins receive ad hoc signatures and the package remains unsigned and
-unnotarized. Apple distribution validation has not been performed here.
+unnotarized. Native macOS installation and AU validation passed; signing/notarization has not been performed.
 
 Native builds run in this repository on the build/installers branch. Windows
 VST3/standalone compilation, tests and installer creation have succeeded. The
-macOS package is being validated by installing it on the runner and running
-Apple auval. See the Actions page for current results. Generated installers
+macOS package passed installation and Apple auval on the runner. See the Actions page for current results. Generated installers
 are unsigned; the macOS package is not notarized.
 
 ## Portable DSP tests
