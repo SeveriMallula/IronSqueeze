@@ -1,0 +1,50 @@
+name: Iron Squeeze installers
+on:
+  push:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  windows:
+    name: Windows x64 VST3 and installer
+    runs-on: windows-2022
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build, test and package
+        shell: cmd
+        run: build_windows.bat
+      - name: Hash installer
+        shell: pwsh
+        run: Get-FileHash dist/*.exe -Algorithm SHA256 | Format-List | Out-File dist/SHA256.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: IronSqueeze-0.2.1-Windows-x64
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 30
+  macos:
+    name: macOS universal VST3 AU and installer
+    runs-on: macos-14
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build, test and package
+        run: bash build_macos.sh
+      - name: Validate AU and package contents
+        run: |
+          sudo installer -pkg dist/IronSqueeze-0.2.1-macOS.pkg -target /
+          plutil -p "/Library/Audio/Plug-Ins/Components/Iron Squeeze.component/Contents/Info.plist"
+          sudo killall AudioComponentRegistrar 2>/dev/null || true
+          sleep 3
+          auval -a
+          auval -v aufx IrSq Mllu
+          pkgutil --payload-files dist/IronSqueeze-0.2.1-macOS.pkg
+          lipo -info "build/IronSqueeze_artefacts/Release/AU/Iron Squeeze.component/Contents/MacOS/Iron Squeeze"
+          shasum -a 256 dist/*.pkg > dist/SHA256.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: IronSqueeze-0.2.1-macOS-universal
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 30
