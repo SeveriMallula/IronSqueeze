@@ -35,7 +35,10 @@ if(APPLE)
 endif()
 juce_add_plugin(IronSqueeze COMPANY_NAME "Mallula Audio" BUNDLE_ID "audio.mallula.ironsqueeze"
     PLUGIN_MANUFACTURER_CODE Mllu PLUGIN_CODE IrSq FORMATS ${IRON_FORMATS}
-    PRODUCT_NAME "Iron Squeeze" IS_SYNTH FALSE NEEDS_MIDI_INPUT FALSE NEEDS_MIDI_OUTPUT FALSE
+    PRODUCT_NAME "Iron Squeeze"
+    MICROPHONE_PERMISSION_ENABLED TRUE
+    MICROPHONE_PERMISSION_TEXT "Iron Squeeze uses audio input for standalone compression."
+    IS_SYNTH FALSE NEEDS_MIDI_INPUT FALSE NEEDS_MIDI_OUTPUT FALSE
     IS_MIDI_EFFECT FALSE COPY_PLUGIN_AFTER_BUILD FALSE VST3_CATEGORIES Fx Dynamics
     AU_MAIN_TYPE kAudioUnitType_Effect)
 target_sources(IronSqueeze PRIVATE Source/PluginProcessor.cpp Source/PluginEditor.cpp)

@@ -1,0 +1,73 @@
+name: Sign and notarize Iron Squeeze
+on:
+  push:
+    branches: [release/notarize]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  notarize:
+    runs-on: macos-14
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Import Developer ID identities and configure notarization
+        env:
+          APPLE_SIGNING_P12_BASE64: ${{ secrets.APPLE_SIGNING_P12_BASE64 }}
+          APPLE_SIGNING_P12_PASSWORD: ${{ secrets.APPLE_SIGNING_P12_PASSWORD }}
+          APPLE_APPLICATION_IDENTITY: ${{ secrets.APPLE_APPLICATION_IDENTITY }}
+          APPLE_INSTALLER_IDENTITY: ${{ secrets.APPLE_INSTALLER_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+        run: |
+          set -euo pipefail
+          for name in APPLE_SIGNING_P12_BASE64 APPLE_SIGNING_P12_PASSWORD APPLE_APPLICATION_IDENTITY APPLE_INSTALLER_IDENTITY APPLE_ID APPLE_TEAM_ID APPLE_APP_SPECIFIC_PASSWORD; do
+            [[ -n "${!name}" ]] || { echo "Missing required secret: $name" >&2; exit 1; }
+          done
+          [[ "$APPLE_APPLICATION_IDENTITY" == "Developer ID Application:"* ]] || exit 1
+          [[ "$APPLE_INSTALLER_IDENTITY" == "Developer ID Installer:"* ]] || exit 1
+          umask 077
+          keychain_path="$RUNNER_TEMP/ironsqueeze-signing.keychain-db"
+          certificate_path="$RUNNER_TEMP/ironsqueeze-signing.p12"
+          keychain_password="$(openssl rand -hex 24)"
+          printf '%s' "$APPLE_SIGNING_P12_BASE64" | base64 --decode > "$certificate_path"
+          security create-keychain -p "$keychain_password" "$keychain_path"
+          security set-keychain-settings -lut 21600 "$keychain_path"
+          security unlock-keychain -p "$keychain_password" "$keychain_path"
+          security import "$certificate_path" -P "$APPLE_SIGNING_P12_PASSWORD" -t cert -f pkcs12 -k "$keychain_path" -T /usr/bin/codesign -T /usr/bin/productsign -T /usr/bin/pkgbuild >/dev/null
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$keychain_password" "$keychain_path" >/dev/null
+          security list-keychains -d user -s "$keychain_path"
+          xcrun notarytool store-credentials IronSqueezeNotary --apple-id "$APPLE_ID" --team-id "$APPLE_TEAM_ID" --password "$APPLE_APP_SPECIFIC_PASSWORD" --keychain "$keychain_path"
+          rm -f "$certificate_path"
+          echo "NOTARY_KEYCHAIN=$keychain_path" >> "$GITHUB_ENV"
+          echo 'NOTARY_PROFILE=IronSqueezeNotary' >> "$GITHUB_ENV"
+      - name: Build, test, sign, notarize and staple
+        env:
+          APP_SIGN_IDENTITY: ${{ secrets.APPLE_APPLICATION_IDENTITY }}
+          INSTALLER_SIGN_IDENTITY: ${{ secrets.APPLE_INSTALLER_IDENTITY }}
+          REQUIRE_NOTARIZATION: '1'
+        run: bash build_macos.sh
+      - name: Verify installed notarized AU
+        run: |
+          sudo installer -pkg dist/IronSqueeze-0.2.1-macOS-Notarized.pkg -target /
+          sudo killall AudioComponentRegistrar 2>/dev/null || true
+          sleep 3
+          auval -v aufx IrSq Mllu
+          shasum -a 256 dist/*Notarized.pkg > dist/SHA256.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: IronSqueeze-0.2.1-macOS-Notarized
+          path: |
+            dist/*Notarized.pkg
+            dist/SHA256.txt
+            dist/notarization-result.json
+          if-no-files-found: error
+          retention-days: 30
+      - name: Remove signing material
+        if: always()
+        run: |
+          security delete-keychain "$RUNNER_TEMP/ironsqueeze-signing.keychain-db" 2>/dev/null || true
+          rm -f "$RUNNER_TEMP/ironsqueeze-signing.p12"
