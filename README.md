@@ -1,108 +1,29 @@
-# Iron Squeeze 0.2.1
+# Sound Imager 0.1.0 — Mallula Audio
 
-Distressor inspired compressor by Mallula Audio, implemented as an original
-feedback DSP model. This is not an Empirical Labs product or a verified
-component-by-component emulation. See docs/MODEL_AND_SOURCES.md for every estimate.
+An original stereo imaging processor inspired by the general workflow of stereo image tools. Not affiliated with Waves; not an emulation of S1 algorithms.
 
-## Deliverable status
+## Controls
+- Width: 0–300%; 100% neutral, 0% mono. Mid/side gain preserves the mono sum at neutral rotation, asymmetry and balance.
+- Rotation: -45 to +45 degrees; an energy-preserving L/R matrix rotation. This differs from S1's proprietary spatial processing.
+- Asymmetry: -12 to +12 dB of relative L/R gain difference, before rotation.
+- Balance: attenuates one output channel, centre unity.
+- Mono bass: 0 off; 20–500 Hz applies a first-order side-channel high-pass. Below 20 Hz the control fades the filter in. This gently narrows the bass; it is not a brick-wall crossover.
+- Output: -24 to +12 dB. Width and asymmetry can raise peaks. There is no limiter; use output trim and the peak display.
+- Mono folds the side to zero before rotation; rotation/asymmetry can subsequently position that mono image.
+- Swap L/R, bypass, correlation and stereo scope. Double-click a knob to restore its default; Reset restores all controls.
 
-Native Windows and macOS installers were built successfully from commit
-`f8ec4efc0f756be96a1a7ccac02f5eb24a04e8c1`. Download the platform artifacts from:
-https://github.com/SeveriMallula/IronSqueeze/actions/runs/41026240511
+Stereo input/output, zero reported latency, 20 ms parameter smoothing, host automation and session state recall. No artificial stereo generation from mono sources. Peak readings are dBFS, not true peak.
 
-Windows includes VST3 and standalone. The macOS package includes VST3, AU and
-standalone for Intel and Apple Silicon, targeting macOS 11+. The macOS installer
-was installed on the runner and Apple AU validation passed. Both native DSP and
-processor test suites passed. See docs/TEST_REPORT.md for limits.
+## Install
+Windows x64: run SoundImager-0.1.0-Windows-Setup.exe. Installs VST3 in Common Files/VST3, plus standalone app and uninstaller.
+macOS 11+: run SoundImager-0.1.0-macOS.pkg. Universal Intel/Apple Silicon VST3 and AU are installed under /Library/Audio/Plug-Ins; standalone under /Applications/Mallula Audio.
+In Logic use Audio Units > Mallula Audio > Sound Imager (stereo). Rescan in Plug-in Manager if needed. In Reaper rescan VST3.
+Installers are unsigned; macOS package is not Apple notarized. Plugin bundles have ad-hoc signatures. macOS security approval may be required in System Settings > Privacy & Security after opening the package.
+Updates use stable plugin IDs and installer identities, so future versions can replace the existing version.
 
-Installers are unsigned, and the macOS package is not notarized.
-JUCE 8.0.12 is fetched at its pinned commit during configuration.
+## Build
+Uses the same native GitHub Actions / JUCE / CMake / Inno Setup / pkgbuild method as Iron Squeeze. JUCE is pinned to commit 29396c22c93392d6738e021b83196283d6e4d850. Windows: build_windows.bat; Mac: bash build_macos.sh. Both scripts test before packaging. CI installs the Mac package and runs auval.
+Portable tests: g++ -std=c++17 -O2 Tests/CoreTests.cpp -o core-tests && ./core-tests
 
-The production plugin format is VST3 (.vst3). Legacy VST2 (.vst) is not included.
-The macOS target also includes Audio Unit (.component), for Logic Pro.
-
-## Audio engine
-
-- Eight compression curves: 1:1, 2:1, 3:1, 4:1, 6:1, optical-style 10:1,
-  20:1, and 40:1 Crush.
-- Feedback detector tapped after harmonic coloration and before the audio high pass.
-- Ratio-specific thresholds and knees; input gain drives compression.
-- Attack 0.05–30 ms, release 50–3500 ms. Optical memory lengthens recovery.
-- Clean, asymmetric H2, symmetric H3; DC removal in the colour modes.
-- Detector 90 Hz high pass and 6 kHz emphasis, plus separate audible 80 Hz HP.
-- Linked stereo or independent dual mono, mono host support.
-- 4x linear-phase FIR oversampling; integer latency reported to the host.
-- Smoothed gain, filter engagement, colour blend, parallel mix and bypass.
-- Five starting points, host automation, saved-state recall.
-
-## Interface
-
-Ivory rotary controls, LED gain-reduction meter and input/output peak levels
-in a compact 1060x440 window. The DSP architecture diagram, transfer plot and
-history panel have been removed from the GUI in 0.2.1.
-
-## Use
-
-Start with Neutral Start and drive Input until the meter shows 3–6 dB reduction.
-Match the processed and bypassed loudness with Output. Slower attack preserves
-transients; faster release brings forward sustain and room sound. SC LOW CUT
-reduces bass sensitivity. AUDIO 80 Hz removes audible bass. Mix blends the
-latency-aligned unprocessed input with the wet output.
-
-Crush and British are compressor curves, not true-peak safety limiters. Output
-can exceed 0 dBFS. No lookahead or external sidechain input is implemented.
-
-## Build the Windows installer
-
-Use Windows 10/11 x64, Visual Studio 2022 (Desktop development with C++),
-CMake 3.22+ and Inno Setup 6. Run build_windows.bat from a developer terminal.
-It builds VST3 and standalone, runs both test executables, then creates:
-
-    dist/IronSqueeze-0.2.1-Windows-Setup.exe
-
-The installer puts the VST3 in Common Files/VST3 and the standalone in
-Program Files/Mallula Audio/Iron Squeeze. Its stable application identity
-supports upgrades over installers produced by this packaging configuration.
-Close audio hosts before updating. Windows compilation, tests and installer creation passed on the native runner.
-JUCE 8.0.12 explicitly rejects MinGW; use the supported MSVC toolchain.
-
-## Build the macOS installer
-
-Use macOS with Xcode command-line tools, Xcode, and CMake 3.22+:
-
-    ./build_macos.sh
-
-It targets macOS 11+ with both Apple Silicon and Intel architectures, builds
-VST3/AU/standalone, runs tests, and creates:
-
-    dist/IronSqueeze-0.2.1-macOS.pkg
-
-Installation paths: /Library/Audio/Plug-Ins/VST3,
-/Library/Audio/Plug-Ins/Components, /Applications/Mallula Audio.
-APP_SIGN_IDENTITY and INSTALLER_SIGN_IDENTITY select signing certificates.
-NOTARY_PROFILE selects an existing notarytool keychain profile. Without these,
-the plugins receive ad hoc signatures and the package remains unsigned and
-unnotarized. Native macOS installation and AU validation passed; signing/notarization has not been performed.
-
-Native builds run in this repository on the build/installers branch. Windows
-VST3/standalone compilation, tests and installer creation have succeeded. The
-macOS package passed installation and Apple auval on the runner. See the Actions page for current results. Generated installers
-are unsigned; the macOS package is not notarized.
-
-## Portable DSP tests
-
-    cmake -S . -B core-build -DIRON_CORE_ONLY=ON
-    cmake --build core-build
-    ctest --test-dir core-build --output-on-failure
-
-## Model accuracy and licensing
-
-The topology is guided by the manufacturer's public manual. Thresholds, knees,
-nonlinear equations, filter widths, and recovery laws are our estimates.
-Hardware measurements and schematics are needed for a calibrated circuit model.
-No measured match to a physical Distressor is claimed.
-
-Original code is MIT licensed. Bundled JUCE is separately dual licensed under
-AGPLv3 or its commercial licence; see third_party/JUCE/LICENSE.md (or
-../third_party/JUCE/LICENSE.md in the complete archive). Keep those notices
-and comply with the selected framework licence when distributing builds.
+## Licence
+Original source: MIT; packaging adapted from Iron Squeeze (MIT). JUCE and bundled SDKs retain their own licences. Distribution of JUCE-based binaries must comply with JUCE's applicable commercial or AGPL terms; the MIT licence covers only this project's original source.

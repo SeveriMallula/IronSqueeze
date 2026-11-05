@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 cd "$(dirname "$0")/../.."
-artifacts="${1:-build/IronSqueeze_artefacts/Release}"
+artifacts="${1:-build/SoundImager_artefacts/Release}"
 app_identity="${APP_SIGN_IDENTITY:--}"
 installer_identity="${INSTALLER_SIGN_IDENTITY:-}"
 require_notarization="${REQUIRE_NOTARIZATION:-0}"
@@ -15,9 +15,9 @@ fi
 stage="$(mktemp -d)"
 trap 'rm -rf "$stage"' EXIT
 mkdir -p "$stage/Library/Audio/Plug-Ins/VST3" "$stage/Library/Audio/Plug-Ins/Components" "$stage/Applications/Mallula Audio" dist
-cp -R "$artifacts/VST3/Iron Squeeze.vst3" "$stage/Library/Audio/Plug-Ins/VST3/"
-cp -R "$artifacts/AU/Iron Squeeze.component" "$stage/Library/Audio/Plug-Ins/Components/"
-cp -R "$artifacts/Standalone/Iron Squeeze.app" "$stage/Applications/Mallula Audio/"
+cp -R "$artifacts/VST3/Sound Imager.vst3" "$stage/Library/Audio/Plug-Ins/VST3/"
+cp -R "$artifacts/AU/Sound Imager.component" "$stage/Library/Audio/Plug-Ins/Components/"
+cp -R "$artifacts/Standalone/Sound Imager.app" "$stage/Applications/Mallula Audio/"
 sign_args=(--force --sign "$app_identity")
 if [[ "$app_identity" != '-' ]]; then
   sign_args+=(--timestamp --options runtime)
@@ -36,9 +36,9 @@ while IFS= read -r -d '' bundle; do
   fi
   codesign --verify --deep --strict --verbose=2 "$bundle"
 done < <(find "$stage" -depth -type d \( -name '*.framework' -o -name '*.xpc' -o -name '*.vst3' -o -name '*.component' -o -name '*.app' \) -print0)
-args=(--root "$stage" --identifier audio.mallula.ironsqueeze --version 0.2.1 --install-location /)
+args=(--root "$stage" --identifier audio.mallula.soundimager --version 0.1.0 --install-location /)
 if [[ -n "$installer_identity" ]]; then args+=(--sign "$installer_identity"); fi
-package=dist/IronSqueeze-0.2.1-macOS.pkg
+package=dist/SoundImager-0.1.0-macOS.pkg
 pkgbuild "${args[@]}" "$package"
 if [[ "$notarize" == 1 ]]; then
   pkgutil --check-signature "$package"
@@ -56,5 +56,5 @@ PY
   xcrun stapler staple "$package"
   xcrun stapler validate "$package"
   spctl --assess --type install --verbose=2 "$package"
-  mv "$package" dist/IronSqueeze-0.2.1-macOS-Notarized.pkg
+  mv "$package" dist/SoundImager-0.1.0-macOS-Notarized.pkg
 fi
