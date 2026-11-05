@@ -45,7 +45,10 @@ jobs:
           auval -a
           auval -v aufx SoIm Mllu
           pkgutil --payload-files dist/SoundImager-0.1.0-macOS.pkg
-          lipo -info "build/SoundImager_artefacts/Release/AU/Sound Imager.component/Contents/MacOS/Sound Imager"
+          lipo -info "/Library/Audio/Plug-Ins/Components/Sound Imager.component/Contents/MacOS/Sound Imager"
+          lipo -info "/Library/Audio/Plug-Ins/VST3/Sound Imager.vst3/Contents/MacOS/Sound Imager"
+          codesign --verify --deep --strict "/Library/Audio/Plug-Ins/Components/Sound Imager.component"
+          codesign --verify --deep --strict "/Library/Audio/Plug-Ins/VST3/Sound Imager.vst3"
           shasum -a 256 dist/*.pkg > dist/SHA256.txt
       - uses: actions/upload-artifact@v4
         with:

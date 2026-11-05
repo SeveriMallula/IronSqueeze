@@ -36,7 +36,23 @@ while IFS= read -r -d '' bundle; do
   fi
   codesign --verify --deep --strict --verbose=2 "$bundle"
 done < <(find "$stage" -depth -type d \( -name '*.framework' -o -name '*.xpc' -o -name '*.vst3' -o -name '*.component' -o -name '*.app' \) -print0)
-args=(--root "$stage" --identifier audio.mallula.soundimager --version 0.1.0 --install-location /)
+# Prevent Installer from relocating bundles to matching build-tree copies.
+pkgbuild --analyze --root "$stage" "$stage/components.plist"
+python3 - "$stage/components.plist" <<'PYPLIST'
+import plistlib,sys
+p=sys.argv[1]
+with open(p,'rb') as f: components=plistlib.load(f)
+for component in components:
+    component['BundleIsRelocatable']=False
+    component['BundleHasStrictIdentifier']=True
+    component['BundleOverwriteAction']='upgrade'
+with open(p,'wb') as f: plistlib.dump(components,f)
+PYPLIST
+# Keep the component specification outside the payload root.
+mv "$stage/components.plist" "$stage/../soundimager-components-$$.plist"
+component_plist="$stage/../soundimager-components-$$.plist"
+trap 'rm -rf "$stage"; rm -f "$component_plist"' EXIT
+args=(--root "$stage" --component-plist "$component_plist" --identifier audio.mallula.soundimager --version 0.1.0 --install-location /)
 if [[ -n "$installer_identity" ]]; then args+=(--sign "$installer_identity"); fi
 package=dist/SoundImager-0.1.0-macOS.pkg
 pkgbuild "${args[@]}" "$package"
