@@ -13,6 +13,6 @@ int main(int argc,char** argv){try {
  for(int k=0;k<20;++k){b.clear();p.processBlock(b,midi);}check(p.getLatencySamples()==0,"zero latency");
  juce::AudioProcessor::BusesLayout mono;mono.inputBuses.add(juce::AudioChannelSet::mono());mono.outputBuses.add(juce::AudioChannelSet::mono());check(!p.isBusesLayoutSupported(mono),"reject mono bus");
  std::unique_ptr<juce::AudioProcessorEditor> editor(p.createEditor());check(editor->getWidth()>=880,"editor construction");
- if(argc==2){juce::Image image(juce::Image::ARGB,editor->getWidth(),editor->getHeight(),true);juce::Graphics g(image);editor->paintEntireComponent(g,true);juce::FileOutputStream stream(juce::File::getCurrentWorkingDirectory().getChildFile(argv[1]));juce::PNGImageFormat png;check(png.writeImageToStream(image,stream),"render editor");}
+ if(argc==2){editor->setVisible(true);juce::Image image(juce::Image::ARGB,editor->getWidth(),editor->getHeight(),true);juce::Graphics g(image);editor->paintEntireComponent(g,true);check(image.getPixelAt(40,110).getBrightness()>0.03f,"editor renders visible pixels");juce::FileOutputStream stream(juce::File::getCurrentWorkingDirectory().getChildFile(argv[1]));juce::PNGImageFormat png;check(png.writeImageToStream(image,stream),"render editor");}
  std::cout<<"PASS: processor, state restore, stereo layout, latency, editor\n";
  }catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}}

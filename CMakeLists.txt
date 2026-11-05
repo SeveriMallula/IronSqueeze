@@ -37,7 +37,7 @@ juce_add_plugin(SoundImager COMPANY_NAME "Mallula Audio" BUNDLE_ID "audio.mallul
     PLUGIN_MANUFACTURER_CODE Mllu PLUGIN_CODE SoIm FORMATS ${IRON_FORMATS}
     PRODUCT_NAME "Sound Imager"
     MICROPHONE_PERMISSION_ENABLED TRUE
-    MICROPHONE_PERMISSION_TEXT "Sound Imager uses audio input for standalone compression."
+    MICROPHONE_PERMISSION_TEXT "Sound Imager uses audio input for standalone stereo processing."
     IS_SYNTH FALSE NEEDS_MIDI_INPUT FALSE NEEDS_MIDI_OUTPUT FALSE
     IS_MIDI_EFFECT FALSE COPY_PLUGIN_AFTER_BUILD FALSE VST3_CATEGORIES Fx Spatial
     AU_MAIN_TYPE kAudioUnitType_Effect)
